@@ -1,0 +1,53 @@
+esphome:
+  name: battery-monitor
+  friendly_name: Battery Monitor
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  password: !secret ota
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Battery monitor Fallback Hotspot"
+    password: !secret ap_fallback_password
+
+captive_portal:
+
+sensor:
+  - platform: adc
+    pin: 34
+    name: "Battery Voltage"
+    id: battery_voltage
+    update_interval: 30min
+    filters:
+      - multiply: 11.0994
+  - platform: template
+    name: "Battery Percentage"
+    unit_of_measurement: "%"
+    lambda: |-
+      float voltage_min = 3.3;    // Minimum battery voltage
+      float voltage_max = 4.2;    // Maximum battery voltage
+      float percentage_min = 0;   // Minimum battery percentage
+      float percentage_max = 100; // Maximum battery percentage
+      
+      float voltage = id(battery_voltage).state;
+      float percentage = (voltage - voltage_min) / (voltage_max - voltage_min) * 100.0;
+      percentage = max(percentage_min, min(percentage, percentage_max));
+      return percentage;
+    update_interval: 30min
